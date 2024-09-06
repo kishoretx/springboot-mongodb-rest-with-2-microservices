@@ -1,0 +1,56 @@
+
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.runCommand({ping: 1})"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+
+  springboot-app-a:
+    image: my-springboot-img-a
+    container_name: springboot-container-a
+    build:
+      context: .
+      dockerfile: service-a/Dockerfile
+    ports:
+      - "8080:8080"  # Exposing port 8080 for springboot-app
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/mydatabase
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  springboot-app-b:
+    image: my-springboot-img-b
+    container_name: springboot-container-b
+    build:
+      context: .
+      dockerfile: service-b/Dockerfile
+    ports:
+      - "8081:8080"  # Exposing port 8080 inside the container but 8081 on the host
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/mydatabase
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
